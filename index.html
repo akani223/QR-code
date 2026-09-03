@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR코드 생성기</title>
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --background: #f3f4f6;
+      --card: #ffffff;
+      --danger: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--background);
+      color: var(--text);
+      font-family:
+        Pretendard,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        "Noto Sans KR",
+        sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 980px;
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.3;
+    }
+
+    .description {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    textarea,
+    select,
+    input[type="color"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+      padding: 12px;
+      line-height: 1.5;
+    }
+
+    select {
+      height: 44px;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    textarea:focus,
+    select:focus {
+      outline: 3px solid rgba(37, 99, 235, 0.18);
+      border-color: var(--primary);
+    }
+
+    .color-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .color-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="color"] {
+      height: 44px;
+      padding: 4px;
+      cursor: pointer;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    button {
+      min-height: 44px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--primary-dark);
+    }
+
+    button.secondary {
+      background: #374151;
+    }
+
+    button.secondary:hover {
+      background: #1f2937;
+    }
+
+    .qr-panel {
+      display: flex;
+      min-height: 100%;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: min(100%, 420px);
+      min-height: 320px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    #qrCanvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      image-rendering: pixelated;
+    }
+
+    .placeholder {
+      color: var(--muted);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .status {
+      min-height: 22px;
+      margin-top: 12px;
+      color: var(--danger);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .hint {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        align-items: flex-start;
+      }
+
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      .qr-panel {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>QR코드 생성기</h1>
+      <p class="description">
+        텍스트나 URL을 입력하면 QR코드를 생성할 수 있습니다.
+      </p>
+
+      <div class="form-group">
+        <label for="qrText">텍스트 또는 URL</label>
+        <textarea
+          id="qrText"
+          placeholder="예: https://example.com"
+        >https://example.com</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="qrSize">QR코드 크기</label>
+        <select id="qrSize">
+          <option value="200">200 × 200</option>
+          <option value="300" selected>300 × 300</option>
+          <option value="400">400 × 400</option>
+          <option value="500">500 × 500</option>
+          <option value="800">800 × 800</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="errorLevel">오류 복원 수준</label>
+        <select id="errorLevel">
+          <option value="L">낮음 — 약 7%</option>
+          <option value="M" selected>중간 — 약 15%</option>
+          <option value="Q">높음 — 약 25%</option>
+          <option value="H">최고 — 약 30%</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>색상</label>
+        <div class="color-row">
+          <div>
+            <label for="darkColor">QR 색상</label>
+            <div class="color-control">
+              <input id="darkColor" type="color" value="#000000" />
+            </div>
+          </div>
+
+          <div>
+            <label for="lightColor">배경 색상</label>
+            <div class="color-control">
+              <input id="lightColor" type="color" value="#ffffff" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button id="generateButton" type="button">QR코드 생성</button>
+        <button id="clearButton" class="secondary" type="button">
+          초기화
+        </button>
+      </div>
+    </section>
+
+    <section class="card qr-panel">
+      <div class="qr-wrapper">
+        <canvas id="qrCanvas" hidden></canvas>
+        <div id="placeholder" class="placeholder">
+          내용을 입력한 뒤 QR코드를 생성하세요.
+        </div>
+      </div>
+
+      <div id="status" class="status" aria-live="polite"></div>
+
+      <div class="button-row">
+        <button id="downloadPngButton" type="button" disabled>
+          PNG 다운로드
+        </button>
+        <button id="downloadSvgButton" class="secondary" type="button" disabled>
+          SVG 다운로드
+        </button>
+      </div>
+
+      <p class="hint">
+        QR코드는 입력된 데이터를 브라우저 안에서 처리합니다.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    /*
+     * QRCode Generator
+     * Based on the QR Code algorithm defined in ISO/IEC 18004.
+     * This implementation supports QR versions 1–10 and byte-mode encoding.
+     */
+
+    const qrText = document.getElementById("qrText");
+    const qrSize = document.getElementById("qrSize");
+    const errorLevel = document.getElementById("errorLevel");
+    const darkColor = document.getElementById("darkColor");
+    const lightColor = document.getElementById("lightColor");
+
+    const qrCanvas = document.getElementById("qrCanvas");
+    const placeholder = document.getElementById("placeholder");
+    const status = document.getElementById("status");
+
+    const generateButton = document.getElementById("generateButton");
+    const clearButton = document.getElementById("clearButton");
+    const downloadPngButton = document.getElementById("downloadPngButton");
+    const downloadSvgButton = document.getElementById("downloadSvgButton");
+
+    let currentQrMatrix = null;
+
+    const GF_EXP = new Array(512);
+    const GF_LOG = new Array(256);
+
+    let x = 1;
+
+    for (let i = 0; i < 255; i++) {
+      GF_EXP[i] = x;
+      GF_LOG[x] = i;
+      x <<= 1;
+
+      if (x & 0x100) {
+        x ^= 0x11d;
+      }
+    }
+
+    for (let i = 255; i < 512; i++) {
+      GF_EXP[i] = GF_EXP[i - 255];
+    }
+
+    const RS_BLOCK_TABLE = {
+      1: {
+        L: [1, 26, 19],
+        M: [1, 26, 16],
+        Q: [1, 26, 13],
+        H: [1, 26, 9]
+      },
+      2: {
+        L: [1, 44, 34],
+        M: [1, 44, 28],
+        Q: [1, 44, 22],
+        H: [1, 44, 16]
+      },
+      3: {
+        L: [1, 70, 55],
+        M: [1, 70, 44],
+        Q: [2, 35, 17],
+        H: [2, 35, 13]
+      },
+      4: {
+        L: [1, 100, 80],
+        M: [2, 50, 32],
+        Q: [2, 50, 24],
+        H: [4, 25, 9]
+      },
+      5: {
+        L: [1, 134, 108],
+        M: [2, 67, 43],
+        Q: [2, 33, 15, 2, 34, 16],
+        H: [2, 33, 11, 2, 34, 12]
+      },
+      6: {
+        L: [2, 86, 68],
+        M: [4, 43, 27],
+        Q: [4, 43, 19],
+        H: [4, 43, 15]
+      },
+      7: {
+        L: [2, 98, 78],
+        M: [4, 49, 31],
+        Q: [2, 32, 14, 4, 33, 15],
+        H: [4, 39, 13, 1, 40, 14]
+      },
+      8: {
+        L: [2, 121, 97],
+        M: [2, 60, 38, 2, 61, 39],
+        Q: [4, 40, 18, 2, 41, 19],
+        H: [4, 40, 14, 2, 41, 15]
+      },
+      9: {
+        L: [2, 146, 116],
+        M: [3, 58, 36, 2, 59, 37],
+        Q: [4, 36, 16, 4, 37, 17],
+        H: [4, 36, 12, 4, 37, 13]
+      },
+      10: {
+        L: [2, 86, 68, 2, 87, 69],
+        M: [4, 69, 43, 1, 70, 44],
+        Q: [6, 43, 19, 2, 44, 20],
+        H: [6, 43, 15, 2, 44, 16]
+      }
+    };
+
+    const ALIGNMENT_POSITIONS = {
+      1: [],
+      2: [6, 18],
+      3: [6, 22],
+      4: [6, 26],
+      5: [6, 30],
+      6: [6, 34],
+      7: [6, 22, 38],
+      8: [6, 24, 42],
+      9: [6, 26, 46],
+      10: [6, 28, 50]
+    };
+
+    function gfMultiply(a, b) {
+      if (a === 0 || b === 0) {
+        return 0;
+      }
+
+      return GF_EXP[GF_LOG[a] + GF_LOG[b]];
+    }
+
+    function polynomialMultiply(a, b) {
+      const result = new Array(a.length + b.length - 1).fill(0);
+
+      for (let i = 0; i < a.length; i++) {
+        for (let j = 0; j < b.length; j++) {
+          result[i + j] ^= gfMultiply(a[i], b[j]);
+        }
+      }
+
+      return result;
+    }
+
+    function createGeneratorPolynomial(length) {
+      let polynomial = [1];
+
+      for (let i = 0; i < length; i++) {
+        polynomial = polynomialMultiply(polynomial, [1, GF_EXP[i]]);
+      }
+
+      return polynomial;
+    }
+
+    function createErrorCorrection(data, errorCount) {
+      const generator = createGeneratorPolynomial(errorCount);
+      const result = new Array(errorCount).fill(0);
+
+      for (const value of data) {
+        const factor = value ^ result[0];
+
+        result.shift();
+        result.push(0);
+
+        for (let i = 0; i < errorCount; i++) {
+          result[i] ^= gfMultiply(generator[i + 1], factor);
+        }
+      }
+
+      return result;
+    }
+
+    function getBlocks(version, level) {
+      const table = RS_BLOCK_TABLE[version][level];
+      const blocks = [];
+
+      for (let i = 0; i < table.length; i += 3) {
+        const count = table[i];
+        const totalCount = table[i + 1];
+        const dataCount = table[i + 2];
+
+        for (let j = 0; j < count; j++) {
+          blocks.push({
+            totalCount,
+            dataCount
+          });
+        }
+      }
+
+      return blocks;
+    }
+
+    function getBit(value, index) {
+      return ((value >>> index) & 1) === 1;
+    }
+
+    function appendBits(target, value, length) {
+      for (let i = length - 1; i >= 0; i--) {
+        target.push(getBit(value, i) ? 1 : 0);
+      }
+    }
+
+    function textToUtf8Bytes(text) {
+      return Array.from(new TextEncoder().encode(text));
+    }
+
+    function createDataCodewords(text, version, level) {
+      const blocks = getBlocks(version, level);
+      const bytes = textToUtf8Bytes(text);
+
+      const totalDataCount = blocks.reduce(
+        (sum, block) => sum + block.dataCount,
+        0
+      );
+
+      const characterCountBits = version < 10 ? 8 : 16;
+      const bits = [];
+
+      appendBits(bits, 0b0100, 4);
+      appendBits(bits, bytes.length, characterCountBits);
+
+      for (const byte of bytes) {
+        appendBits(bits, byte, 8);
+      }
+
+      if (bits.length + 4 <= totalDataCount * 8) {
+        appendBits(bits, 0, 4);
+      }
+
+      while (bits.length % 8 !== 0) {
+        bits.push(0);
+      }
+
+      const codewords = [];
+
+      for (let i = 0; i < bits.length; i += 8) {
+        let value = 0;
+
+        for (let j = 0; j < 8; j++) {
+          value = (value << 1) | bits[i + j];
+        }
+
+        codewords.push(value);
+      }
+
+      let pad = true;
+
+      while (codewords.length < totalDataCount) {
+        codewords.push(pad ? 0xec : 0x11);
+        pad = !pad;
+      }
+
+      const dataBlocks = [];
+      const errorBlocks = [];
+      let offset = 0;
+
+      for (const block of blocks) {
+        const data = codewords.slice(offset, offset + block.dataCount);
+        offset += block.dataCount;
+
+        const errorCount = block.totalCount - block.dataCount;
+        const error = createErrorCorrection(data, errorCount);
+
+        dataBlocks.push(data);
+        errorBlocks.push(error);
+      }
+
+      const finalCodewords = [];
+
+      const maxDataLength = Math.max(
+        ...dataBlocks.map((block) => block.length)
+      );
+
+      for (let i = 0; i < maxDataLength; i++) {
+        for (const block of dataBlocks) {
+          if (i < block.length) {
+            finalCodewords.push(block[i]);
+          }
+        }
+      }
+
+      const maxErrorLength = Math.max(
+        ...errorBlocks.map((block) => block.length)
+      );
+
+      for (let i = 0; i < maxErrorLength; i++) {
+        for (const block of errorBlocks) {
+          if (i < block.length) {
+            finalCodewords.push(block[i]);
+          }
+        }
+      }
+
+      return finalCodewords;
+    }
+
+    function getMaskBit(mask, row, col) {
+      switch (mask) {
+        case 0:
+          return (row + col) % 2 === 0;
+        case 1:
+          return row % 2 === 0;
+        case 2:
+          return col % 3 === 0;
+        case 3:
+          return (row + col) % 3 === 0;
+        case 4:
+          return (Math.floor(row / 2) + Math.floor(col / 3)) % 2 === 0;
+        case 5:
+          return ((row * col) % 2) + ((row * col) % 3) === 0;
+        case 6:
+          return (
+            (((row * col) % 2) + ((row * col) % 3)) % 2 === 0
+          );
+        case 7:
+          return (
+            (((row * col) % 3) + ((row + col) % 2)) % 2 === 0
+          );
+        default:
+          return false;
+      }
+    }
+
+    function getFormatBits(level, mask) {
+      const levelBits = {
+        L: 1,
+        M: 0,
+        Q: 3,
+        H: 2
+      }[level];
+
+      const data = (levelBits << 3) | mask;
+      let bits = data << 10;
+      const generator = 0x537;
+
+      for (let i = 14; i >= 10; i--) {
+        if (((bits >>> i) & 1) !== 0) {
+          bits ^= generator << (i - 10);
+        }
+      }
+
+      return ((data << 10) | bits) ^ 0x5412;
+    }
+
+    function createMatrix(version, level, dataCodewords, mask) {
+      const size = version * 4 + 17;
+      const modules = Array.from(
+        { length: size },
+        () => Array(size).fill(null)
+      );
+
+      function setModule(row, col, value) {
+        if (
+          row >= 0 &&
+          row < size &&
+          col >= 0 &&
+          col < size
+        ) {
+          modules[row][col] = value;
+        }
+      }
+
+      function setupFinderPattern(row, col) {
+        for (let r = -1; r <= 7; r++) {
+          for (let c = -1; c <= 7; c++) {
+            const outer =
+              r >= 0 &&
+              r <= 6 &&
+              c >= 0 &&
+              c <= 6 &&
+              (r === 0 ||
+                r === 6 ||
+                c === 0 ||
+                c === 6);
+
+            const inner =
+              r >= 2 &&
+              r <= 4 &&
+              c >= 2 &&
+              c <= 4;
+
+            setModule(row + r, col + c, outer || inner);
+          }
+        }
+      }
+
+      setupFinderPattern(0, 0);
+      setupFinderPattern(size - 7, 0);
+      setupFinderPattern(0, size - 7);
+
+      const alignmentPositions = ALIGNMENT_POSITIONS[version];
+
+      for (const row of alignmentPositions) {
+        for (const col of alignmentPositions) {
+          if (
+            modules[row][col] !== null
+          ) {
+            continue;
+          }
+
+          for (let r = -2; r <= 2; r++) {
+            for (let c = -2; c <= 2; c++) {
+              const value =
+                Math.max(Math.abs(r), Math.abs(c)) !== 1;
+
+              setModule(row + r, col + c, value);
+            }
+          }
+        }
+      }
+
+      for (let i = 8; i < size - 8; i++) {
+        if (modules[6][i] === null) {
+          modules[6][i] = i % 2 === 0;
+        }
+
+        if (modules[i][6] === null) {
+          modules[i][6] = i % 2 === 0;
+        }
+      }
+
+      for (let i = 0; i < 9; i++) {
+        if (modules[i][8] === null) {
+          modules[i][8] = false;
+        }
+
+        if (modules[8][i] === null) {
+          modules[8][i] = false;
+        }
+
+        if (modules[size - 1 - i][8] === null) {
+          modules[size - 1 - i][8] = false;
+        }
+
+        if (modules[8][size - 1 - i] === null) {
+          modules[8][size - 1 - i] = false;
+        }
+      }
+
+      modules[size - 8][8] = true;
+
+      const formatBits = getFormatBits(level, mask);
+
+      for (let i = 0; i < 15; i++) {
+        const bit = getBit(formatBits, i);
+
+        if (i < 6) {
+          modules[i][8] = bit;
+        } else if (i < 8) {
+          modules[i + 1][8] = bit;
+        } else {
+          modules[size - 15 + i][8] = bit;
+        }
+
+        if (i < 8) {
+          modules[8][size - i - 1] = bit;
+        } else if (i < 9) {
+          modules[8][15 - i] = bit;
+        } else {
+          modules[8][15 - i - 1] = bit;
+        }
+      }
+
+      modules[8][size - 8] = true;
+
+      const bitStream = [];
+
+      for (const codeword of dataCodewords) {
+        appendBits(bitStream, codeword, 8);
+      }
+
+      let bitIndex = 0;
+      let row = size - 1;
+      let direction = -1;
+      let col = size - 1;
+
+      while (col > 0) {
+        if (col === 6) {
+          col--;
+        }
+
+        while (true) {
+          for (let c = 0; c < 2; c++) {
+            const currentCol = col - c;
+
+            if (modules[row][currentCol] !== null) {
+              continue;
+            }
+
+            let value = false;
+
+            if (bitIndex < bitStream.length) {
+              value = bitStream[bitIndex] === 1;
+              bitIndex++;
+            }
+
+            if (getMaskBit(mask, row, currentCol)) {
+              value = !value;
+            }
+
+            modules[row][currentCol] = value;
+          }
+
+          row += direction;
+
+          if (row < 0 || row >= size) {
+            row -= direction;
+            direction = -direction;
+            break;
+          }
+        }
+
+        col -= 2;
+      }
+
+      return modules;
+    }
+
+    function calculatePenalty(matrix) {
+      const size = matrix.length;
+      let penalty = 0;
+
+      for (let row = 0; row < size; row++) {
+        let runColor = matrix[row][0];
+        let runLength = 1;
+
+        for (let col = 1; col < size; col++) {
+          if (matrix[row][col] === runColor) {
+            runLength++;
+          } else {
+            if (runLength >= 5) {
+              penalty += 3 + runLength - 5;
+            }
+
+            runColor = matrix[row][col];
+            runLength = 1;
+          }
+        }
+
+        if (runLength >= 5) {
+          penalty += 3 + runLength - 5;
+        }
+      }
+
+      for (let col = 0; col < size; col++) {
+        let runColor = matrix[0][col];
+        let runLength = 1;
+
+        for (let row = 1; row < size; row++) {
+          if (matrix[row][col] === runColor) {
+            runLength++;
+          } else {
+            if (runLength >= 5) {
+              penalty += 3 + runLength - 5;
+            }
+
+            runColor = matrix[row][col];
+            runLength = 1;
+          }
+        }
+
+        if (runLength >= 5) {
+          penalty += 3 + runLength - 5;
+        }
+      }
+
+      for (let row = 0; row < size - 1; row++) {
+        for (let col = 0; col < size - 1; col++) {
+          const value = matrix[row][col];
+
+          if (
+            matrix[row][col + 1] === value &&
+            matrix[row + 1][col] === value &&
+            matrix[row + 1][col + 1] === value
+          ) {
+            penalty += 3;
+          }
+        }
+      }
+
+      const pattern1 = [
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true
+      ];
+
+      for (let row = 0; row < size; row++) {
+        for (let col = 0; col <= size - 7; col++) {
+          let matched = true;
+
+          for (let i = 0; i < 7; i++) {
+            if (matrix[row][col + i] !== pattern1[i]) {
+              matched = false;
+              break;
+            }
+          }
+
+          if (matched) {
+            penalty += 40;
+          }
+        }
+      }
+
+      for (let col = 0; col < size; col++) {
+        for (let row = 0; row <= size - 7; row++) {
+          let matched = true;
+
+          for (let i = 0; i < 7; i++) {
+            if (matrix[row + i][col] !== pattern1[i]) {
+              matched = false;
+              break;
+            }
+          }
+
+          if (matched) {
+            penalty += 40;
+          }
+        }
+      }
+
+      let darkCount = 0;
+
+      for (const row of matrix) {
+        for (const value of row) {
+          if (value) {
+            darkCount++;
+          }
+        }
+      }
+
+      const total = size * size;
+      const percentage = (darkCount * 100) / total;
+      penalty += Math.floor(Math.abs(percentage - 50) / 5) * 10;
+
+      return penalty;
+    }
+
+    function createQrMatrix(text, level) {
+      const bytes = textToUtf8Bytes(text);
+
+      let selectedVersion = null;
+
+      for (let version = 1; version <= 10; version++) {
+        const blocks = getBlocks(version, level);
+        const capacity = blocks.reduce(
+          (sum, block) => sum + block.dataCount,
+          0
+        );
+
+        const countBits = version < 10 ? 8 : 16;
+        const requiredBits =
+          4 + countBits + bytes.length * 8;
+
+        if (requiredBits <= capacity * 8) {
+          selectedVersion = version;
+          break;
+        }
+      }
+
+      if (selectedVersion === null) {
+        throw new Error(
+          "입력한 내용이 너무 깁니다. 내용을 줄여 주세요."
+        );
+      }
+
+      const codewords = createDataCodewords(
+        text,
+        selectedVersion,
+        level
+      );
+
+      let bestMatrix = null;
+      let bestPenalty = Infinity;
+
+      for (let mask = 0; mask < 8; mask++) {
+        const matrix = createMatrix(
+          selectedVersion,
+          level,
+          codewords,
+          mask
+        );
+
+        const penalty = calculatePenalty(matrix);
+
+        if (penalty < bestPenalty) {
+          bestPenalty = penalty;
+          bestMatrix = matrix;
+        }
+      }
+
+      return bestMatrix;
+    }
+
+    function drawQr(matrix, size, dark, light) {
+      const canvas = qrCanvas;
+      const context = canvas.getContext("2d");
+
+      const moduleCount = matrix.length;
+      const quietZone = 4;
+      const totalModules = moduleCount + quietZone * 2;
+
+      canvas.width = size;
+      canvas.height = size;
+
+      context.fillStyle = light;
+      context.fillRect(0, 0, size, size);
+
+      const moduleSize = size / totalModules;
+
+      context.fillStyle = dark;
+
+      for (let row = 0; row < moduleCount; row++) {
+        for (let col = 0; col < moduleCount; col++) {
+          if (!matrix[row][col]) {
+            continue;
+          }
+
+          const left = Math.round((col + quietZone) * moduleSize);
+          const top = Math.round((row + quietZone) * moduleSize);
+          const right = Math.round((col + quietZone + 1) * moduleSize);
+          const bottom = Math.round((row + quietZone + 1) * moduleSize);
+
+          context.fillRect(
+            left,
+            top,
+            right - left,
+            bottom - top
+          );
+        }
+      }
+    }
+
+    function matrixToSvg(matrix, size, dark, light) {
+      const moduleCount = matrix.length;
+      const quietZone = 4;
+      const totalModules = moduleCount + quietZone * 2;
+      const darkParts = [];
+
+      for (let row = 0; row < moduleCount; row++) {
+        for (let col = 0; col < moduleCount; col++) {
+          if (matrix[row][col]) {
+            darkParts.push(
+              `<rect x="${col + quietZone}" y="${row + quietZone}" width="1" height="1"/>`
+            );
+          }
+        }
+      }
+
+      return [
+        `<?xml version="1.0" encoding="UTF-8"?>`,
+        `<svg xmlns="http://www.w3.org/2000/svg"`,
+        ` width="${size}" height="${size}"`,
+        ` viewBox="0 0 ${totalModules} ${totalModules}"`,
+        ` shape-rendering="crispEdges">`,
+        `<rect width="100%" height="100%" fill="${light}"/>`,
+        `<g fill="${dark}">`,
+        darkParts.join(""),
+        `</g>`,
+        `</svg>`
+      ].join("");
+    }
+
+    function setStatus(message) {
+      status.textContent = message;
+    }
+
+    function generateQr() {
+      const text = qrText.value;
+
+      if (!text.trim()) {
+        currentQrMatrix = null;
+        qrCanvas.hidden = true;
+        placeholder.hidden = false;
+        downloadPngButton.disabled = true;
+        downloadSvgButton.disabled = true;
+        setStatus("텍스트 또는 URL을 입력해 주세요.");
+        return;
+      }
+
+      try {
+        const matrix = createQrMatrix(
+          text,
+          errorLevel.value
+        );
+
+        currentQrMatrix = matrix;
+
+        drawQr(
+          matrix,
+          Number(qrSize.value),
+          darkColor.value,
+          lightColor.value
+        );
+
+        qrCanvas.hidden = false;
+        placeholder.hidden = true;
+        downloadPngButton.disabled = false;
+        downloadSvgButton.disabled = false;
+
+        setStatus("");
+      } catch (error) {
+        currentQrMatrix = null;
+        qrCanvas.hidden = true;
+        placeholder.hidden = false;
+        downloadPngButton.disabled = true;
+        downloadSvgButton.disabled = true;
+        setStatus(error.message);
+      }
+    }
+
+    function clearAll() {
+      qrText.value = "";
+      currentQrMatrix = null;
+      qrCanvas.hidden = true;
+      placeholder.hidden = false;
+      downloadPngButton.disabled = true;
+      downloadSvgButton.disabled = true;
+      setStatus("");
+    }
+
+    function downloadPng() {
+      if (!currentQrMatrix) {
+        return;
+      }
+
+      const link = document.createElement("a");
+
+      link.download = "qrcode.png";
+      link.href = qrCanvas.toDataURL("image/png");
+      link.click();
+    }
+
+    function downloadSvg() {
+      if (!currentQrMatrix) {
+        return;
+      }
+
+      const svg = matrixToSvg(
+        currentQrMatrix,
+        Number(qrSize.value),
+        darkColor.value,
+        lightColor.value
+      );
+
+      const blob = new Blob([svg], {
+        type: "image/svg+xml;charset=utf-8"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.download = "qrcode.svg";
+      link.href = url;
+      link.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    generateButton.addEventListener("click", generateQr);
+    clearButton.addEventListener("click", clearAll);
+    downloadPngButton.addEventListener("click", downloadPng);
+    downloadSvgButton.addEventListener("click", downloadSvg);
+
+    qrText.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        generateQr();
+      }
+    });
+
+    qrSize.addEventListener("change", generateQr);
+    errorLevel.addEventListener("change", generateQr);
+    darkColor.addEventListener("input", generateQr);
+    lightColor.addEventListener("input", generateQr);
+
+    generateQr();
+  </script>
+</body>
+</html>
